@@ -72,7 +72,7 @@ def group_values(lines):
             record.name = first[0]
             record.type = first[1]
             if first[2].startswith('ALIAS'):
-                _, alias_hosted_zone_id, alias_dns_name = first[2].split(':')
+                _, alias_hosted_zone_id, alias_dns_name, alias_evaluate_target_health = first[2].split(':')
                 record.alias_hosted_zone_id = alias_hosted_zone_id
                 record.alias_dns_name = alias_dns_name
                 record.alias_evaluate_target_health = alias_evaluate_target_health
