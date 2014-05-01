@@ -40,7 +40,7 @@ def get_aws_credentials(params):
     else:
         secret_key = params.get('--secret-key') or environ.get('AWS_SECRET_ACCESS_KEY')
     if not (access_key and secret_key):
-        exit_with_error('ERROR: Invalid AWS credentials supplied.')
+        return None, None
     return access_key, secret_key
 
 def get_zone(con, zone_name):
@@ -75,6 +75,7 @@ def group_values(lines):
                 _, alias_hosted_zone_id, alias_dns_name = first[2].split(':')
                 record.alias_hosted_zone_id = alias_hosted_zone_id
                 record.alias_dns_name = alias_dns_name
+                record.alias_evaluate_target_health = alias_evaluate_target_health
             else:
                 record.resource_records = [r[2] for r in recs]
                 record.ttl = first[3]
@@ -154,7 +155,7 @@ def dump(con, zone_name, filename):
     records = list(con.get_all_rrsets(zone['id']))
     for r in records:
         if r.alias_dns_name:
-            vals = [':'.join(['ALIAS', r.alias_hosted_zone_id, r.alias_dns_name])]
+            vals = [':'.join(['ALIAS', r.alias_hosted_zone_id, r.alias_dns_name, r.alias_evaluate_target_health])]
         else:
             vals = r.resource_records
         for val in vals:
@@ -163,7 +164,10 @@ def dump(con, zone_name, filename):
 
 def run(params):
     access_key, secret_key = get_aws_credentials(params)
-    con = route53.connect_to_region('universal', aws_access_key_id=access_key, aws_secret_access_key=secret_key)
+    if (access_key and secret_key):
+        con = route53.connect_to_region('universal', aws_access_key_id=access_key, aws_secret_access_key=secret_key)
+    else:
+        con = route53.connect_to_region('universal')
     zone_name = params['<zone>']
     filename = params['<file>']
 
