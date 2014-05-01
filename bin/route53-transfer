@@ -1,10 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/python27
 
 """route53-transfer
 
 Usage:
   route53-transfer [options] load <zone> <file>
   route53-transfer [options] dump <zone> <file>
+  route53-transfer [options] dumps3 <zone> <bucket>
   route53-transfer -h | --help
   route53-transfer -v | --version
 
