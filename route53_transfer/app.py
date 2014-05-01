@@ -1,8 +1,13 @@
 import csv, sys
 import itertools
+import datetime
+import os
+import boto
 from os import environ
 from os.path import join
 from boto import route53
+from boto.s3.connection import S3Connection
+from boto.s3.key import Key
 from boto.route53.record import Record, ResourceRecordSets
 
 class ComparableRecord(object):
@@ -162,18 +167,55 @@ def dump(con, zone_name, filename):
             out.writerow([r.name, r.type, val, r.ttl, r.region, r.weight, r.identifier])
     fout.flush()
 
+def dumps3(con, cons3, zone_name, bucketname):
+    zone = get_zone(con, zone_name)
+    if not zone:
+        exit_with_error("ERROR: Zone <" + zone_name + "> not found!")
+
+    b = cons3.get_bucket(bucketname)
+    if not bucketname:
+        exit_with_error("ERROR: BucketName <" + bucketname + "> not found!")
+
+    filename = zone_name + datetime.datetime.now().strftime("%m-%d-%Y-%H-%M-%S") + '.csv'
+    fout = open(filename, 'w')
+
+    out = csv.writer(fout)
+    out.writerow(['NAME','TYPE','VALUE','TTL','REGION','WEIGHT','SETID'])
+
+    records = list(con.get_all_rrsets(zone['id']))
+    for r in records:
+        if r.alias_dns_name:
+            vals = [':'.join(['ALIAS', r.alias_hosted_zone_id, r.alias_dns_name, r.alias_evaluate_target_health])]
+        else:
+            vals = r.resource_records
+        for val in vals:
+            out.writerow([r.name, r.type, val, r.ttl, r.region, r.weight, r.identifier])
+    fout.flush()
+    k = Key(b)
+    k.key = filename
+    k.set_contents_from_filename(filename)
+    os.remove(filename)
+
 def run(params):
     access_key, secret_key = get_aws_credentials(params)
     if (access_key and secret_key):
         con = route53.connect_to_region('universal', aws_access_key_id=access_key, aws_secret_access_key=secret_key)
     else:
         con = route53.connect_to_region('universal')
+    if (access_key and secret_key):
+        cons3 = S3Connection(access_key, secret_key)
+    else:
+        cons3 = boto.connect_s3()
+
     zone_name = params['<zone>']
     filename = params['<file>']
+    bucketname = params['<bucket>']
 
     if params['dump']:
         dump(con, zone_name, filename)
     elif params['load']:
         load(con, zone_name, filename)
+    elif params['dumps3']:
+        dumps3(con, cons3, zone_name, bucketname)
     else:
         return 1
