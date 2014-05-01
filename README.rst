@@ -22,6 +22,12 @@ Backup the ``example.com`` zone to a ``CSV`` file.
 
     route53-transfer dump example.com backup.csv
 
+Backup the ``example.com`` zone to a ``S3`` bucket.
+
+::
+
+    route53-transfer dumps3 example.com s3bucketname
+
 Use STDOUT instead of a file
 
 ::
